@@ -138,7 +138,7 @@ def contar_colecciones_nosql(config):
 
 def leer_archivo(ruta, ext):
     if ext == ".csv":
-        return pd.read_csv(ruta, encoding="utf-8", low_memory=False)
+        return pd.read_csv(ruta, encoding="utf-8", on_bad_lines='skip', engine='python')
     elif ext in [".xlsx", ".xls"]:
         return pd.read_excel(ruta)
     elif ext == ".pkl":
@@ -150,7 +150,7 @@ def leer_archivo(ruta, ext):
     elif ext == ".parquet":
         return pd.read_parquet(ruta)
     elif ext == ".tsv":
-        return pd.read_csv(ruta, sep="\t", encoding="utf-8")
+        return pd.read_csv(ruta, sep="\t", encoding="utf-8", on_bad_lines='skip', engine='python')
     elif ext == ".xml":
         return pd.read_xml(ruta)
     elif ext == ".feather":
@@ -210,16 +210,16 @@ resumen = pd.DataFrame(resultados)
 pd.set_option("display.max_colwidth", 45)
 pd.set_option("display.max_rows", 200)
 
-print("\n" + "═" * 70)
+print("\n" + "=" * 70)
 print("   RESUMEN DE DATASETS")
-print("═" * 70)
+print("=" * 70)
 print(resumen.to_string(index=False))
 
 # ── Total general ────────────────────────────────────────────────
 solo_numeros = resumen[pd.to_numeric(resumen["Registros"], errors="coerce").notna()]
 total = pd.to_numeric(solo_numeros["Registros"]).sum()
 
-print("═" * 70)
+print("=" * 70)
 print(f"  Total de datasets analizados : {len(resumen):>10,}")
 print(f"  Total de registros (todos)   : {int(total):>10,}")
-print("═" * 70)
+print("=" * 70)
