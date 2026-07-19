@@ -81,7 +81,7 @@ def consolidar_resultados_paris():
 def consolidar_biometria():
     print("\nConsolidando chunks de Biometría IoT...")
     # Leer los 4 archivos JSON
-    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados", "biometria_chunk_*.json"))
+    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados_limpios", "biometria_limpia.json"))
     datos_unidos = []
     for archivo in archivos:
         try:
@@ -97,9 +97,20 @@ def consolidar_biometria():
             json.dump(datos_unidos, f, indent=4)
         print(f"[OK] Biometría consolidada guardada en {ruta_salida} ({len(datos_unidos)} registros)")
 
+def consolidar_movilidad():
+    print("\nConsolidando Movilidad Urbana...")
+    ruta = os.path.join(DIR_BASE, "datos_simulados_limpios", "movilidad_limpia.parquet")
+    if os.path.exists(ruta):
+        df = pd.read_parquet(ruta)
+        ruta_salida = os.path.join(DIR_SALIDA, "movilidad_consolidada.csv")
+        df.to_csv(ruta_salida, index=False, encoding='utf-8')
+        print(f"[OK] Movilidad consolidada guardada en {ruta_salida} ({len(df)} registros)")
+    else:
+        print("[WARNING] No se encontró movilidad_limpia.parquet, corre primero el notebook de limpieza")
+
 def consolidar_tickets():
     print("\nConsolidando tickets simulados...")
-    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados", "tickets_parte*.csv"))
+    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados_limpios", "tickets_limpios.csv"))
     dfs = []
     for archivo in archivos:
         try:
@@ -149,6 +160,7 @@ if __name__ == "__main__":
     consolidar_resultados_paris()
     consolidar_biometria()
     consolidar_tickets()
+    consolidar_movilidad()  
     copiar_archivos_restantes()
     
     print("\n=== CONSOLIDACIÓN COMPLETADA ===")

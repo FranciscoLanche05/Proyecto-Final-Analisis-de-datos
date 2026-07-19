@@ -1,0 +1,7 @@
+Dataset,Etapa,Filas,Nulos,Duplicados
+Tickets,Antes,1010000,49431,10000
+Tickets,Despues,1000000,0,0
+Biometria,Antes,1000000,60000,0
+Biometria,Despues,1000000,0,0
+Movilidad,Antes,1000000,50000,0
+Movilidad,Despues,1000000,0,0
