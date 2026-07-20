@@ -76,10 +76,18 @@ for ciudad, coords in ciudades_mongodb.items():
         datos_mongo.extend(df.to_dict(orient='records'))
         total_registros += len(df)
 
-ruta_json = os.path.join(carpeta_salida, "clima_europa_mongodb.json")
-with open(ruta_json, 'w', encoding='utf-8') as f:
-    json.dump(datos_mongo, f)
-print(f"\n-> Guardado JSON masivo: {ruta_json}")
+# Partir en 2 archivos para no generar un JSON demasiado pesado
+mitad = len(datos_mongo) // 2
+
+ruta_json_p1 = os.path.join(carpeta_salida, "clima_europa_mongodb_part1.json")
+ruta_json_p2 = os.path.join(carpeta_salida, "clima_europa_mongodb_part2.json")
+
+with open(ruta_json_p1, 'w', encoding='utf-8') as f:
+    json.dump(datos_mongo[:mitad], f)
+with open(ruta_json_p2, 'w', encoding='utf-8') as f:
+    json.dump(datos_mongo[mitad:], f)
+
+print(f"\n-> Guardado JSON masivo en 2 partes: {ruta_json_p1} y {ruta_json_p2}")
 
 # ==========================================
 # 2. EXTRACCIÓN PARA CASSANDRA/NEO4J (Formato CSV)
