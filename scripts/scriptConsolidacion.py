@@ -1,5 +1,4 @@
 import os
-import csv
 import pandas as pd
 import json
 import glob
@@ -34,39 +33,30 @@ def consolidar_tweets():
         try:
             # engine='python' y on_bad_lines='skip' nos protegen de filas corruptas
             df = pd.read_csv(archivo, on_bad_lines='skip', engine='python', encoding='utf-8')
+            
+            # Limpieza en caliente por cada archivo para evitar MemoryError
+            col_texto = None
+            for col in ['text', 'tweet', 'content', 'Text']:
+                if col in df.columns:
+                    col_texto = col
+                    break
+                    
+            if col_texto:
+                print(f"  -> Limpiando texto en {os.path.basename(archivo)}")
+                df[col_texto] = df[col_texto].fillna("").astype(str)
+                df[col_texto] = df[col_texto].str.replace(r'http\S+|www\S+|https\S+', '', regex=True)
+                df[col_texto] = df[col_texto].str.replace(r'\@\w+', '', regex=True)
+                df[col_texto] = df[col_texto].str.strip()
+                df = df[df[col_texto] != ""]
+                
             dfs.append(df)
         except Exception as e:
             print(f"Error leyendo {archivo}: {e}")
     
     if dfs:
         df_unido = pd.concat(dfs, ignore_index=True)
-        # Limpieza avanzada en la columna de texto ('text' suele ser la común en Kaggle Twitter)
-        col_texto = None
-        for col in ['text', 'tweet', 'content', 'Text']:
-            if col in df_unido.columns:
-                col_texto = col
-                break
-        
-        if col_texto:
-            print(f"  -> Aplicando limpieza de texto (Regex) en la columna '{col_texto}'")
-            df_unido[col_texto] = df_unido[col_texto].apply(limpiar_texto)
-            # Eliminar tweets que se quedaron vacíos después de la limpieza
-            df_unido = df_unido[df_unido[col_texto] != ""]
-
-        # Eliminar saltos de línea dentro de TODOS los campos de texto
-        # para compatibilidad con KNIME y otras herramientas CSV
-        for col in df_unido.columns:
-            if df_unido[col].dtype == object:
-                df_unido[col] = (
-                    df_unido[col]
-                    .fillna("")
-                    .astype(str)
-                    .str.replace(r"[\r\n]+", " ", regex=True)
-                    .str.strip()
-                )
-
         ruta_salida = os.path.join(DIR_SALIDA, "tweets_consolidados.csv")
-        df_unido.to_csv(ruta_salida, index=False, encoding="utf-8", quoting=csv.QUOTE_ALL)
+        df_unido.to_csv(ruta_salida, index=False, encoding='utf-8')
         print(f"[OK] Tweets consolidados guardados en {ruta_salida} ({len(df_unido)} registros)")
 
 def consolidar_resultados_paris():
@@ -94,7 +84,7 @@ def consolidar_resultados_paris():
 def consolidar_biometria():
     print("\nConsolidando chunks de Biometría IoT...")
     # Leer los 4 archivos JSON
-    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados_limpios", "biometria_limpia.json"))
+    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados", "biometria_chunk_*.json"))
     datos_unidos = []
     for archivo in archivos:
         try:
@@ -110,20 +100,9 @@ def consolidar_biometria():
             json.dump(datos_unidos, f, indent=4)
         print(f"[OK] Biometría consolidada guardada en {ruta_salida} ({len(datos_unidos)} registros)")
 
-def consolidar_movilidad():
-    print("\nConsolidando Movilidad Urbana...")
-    ruta = os.path.join(DIR_BASE, "datos_simulados_limpios", "movilidad_limpia.parquet")
-    if os.path.exists(ruta):
-        df = pd.read_parquet(ruta)
-        ruta_salida = os.path.join(DIR_SALIDA, "movilidad_consolidada.csv")
-        df.to_csv(ruta_salida, index=False, encoding='utf-8')
-        print(f"[OK] Movilidad consolidada guardada en {ruta_salida} ({len(df)} registros)")
-    else:
-        print("[WARNING] No se encontró movilidad_limpia.parquet, corre primero el notebook de limpieza")
-
 def consolidar_tickets():
     print("\nConsolidando tickets simulados...")
-    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados_limpios", "tickets_limpios.csv"))
+    archivos = glob.glob(os.path.join(DIR_BASE, "datos_simulados", "tickets_parte*.csv"))
     dfs = []
     for archivo in archivos:
         try:
@@ -137,18 +116,6 @@ def consolidar_tickets():
         ruta_salida = os.path.join(DIR_SALIDA, "tickets_consolidados.csv")
         df_unido.to_csv(ruta_salida, index=False, encoding='utf-8')
         print(f"[OK] Tickets consolidados guardados en {ruta_salida} ({len(df_unido)} registros)")
-        
-def consolidar_googlebigquery():
-    print("\nConsolidando datos de GDELT (googleBigQuery)...")
-    ruta = os.path.join(DIR_BASE, "googleBigQuery", "bq-results-20260716-171541-1784222468943.csv")
-    if os.path.exists(ruta):
-        df = pd.read_csv(ruta, encoding='utf-8')
-        ruta_salida = os.path.join(DIR_SALIDA, "gdelt_noticias_mundiales.csv")
-        df.to_csv(ruta_salida, index=False, encoding='utf-8')
-        print(f"[OK] GDELT consolidado guardado en {ruta_salida} ({len(df)} registros)")
-    else:
-        print("[WARNING] No se encontró el archivo de googleBigQuery")
-
 
 def copiar_archivos_restantes():
     print("\nCopiando datasets adicionales (no consolidados) para el Estudiante B...")
@@ -185,8 +152,6 @@ if __name__ == "__main__":
     consolidar_resultados_paris()
     consolidar_biometria()
     consolidar_tickets()
-    consolidar_movilidad()  
-    consolidar_googlebigquery()
     copiar_archivos_restantes()
     
     print("\n=== CONSOLIDACIÓN COMPLETADA ===")
